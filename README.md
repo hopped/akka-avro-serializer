@@ -44,26 +44,28 @@ In order to make use of Avro serialization, you need to tell the
 **hopped.akka.serialization.AvroSerializer**, and which objects are to be
 serialized, as follows:
 
-    import akka.actor.ActorSystem
-    import akka.serialization._
-    import com.typesafe.config.ConfigFactory
+```scala
+import akka.actor.ActorSystem
+import akka.serialization._
+import com.typesafe.config.ConfigFactory
 
-    val config = ConfigFactory.parseString("""
-      akka {
-        actor {
-          serializers {
-            avro = "hopped.akka.serialization.AvroSerializer"
-          }
-
-          serialization-bindings {
-            "java.io.Serializable" = none
-            "org.apache.avro.generic.GenericContainer" = avro
-          }
-        }
+val config = ConfigFactory.parseString("""
+  akka {
+    actor {
+      serializers {
+        avro = "hopped.akka.serialization.AvroSerializer"
       }
-    """)
-    val system = ActorSystem("example", ConfigFactory.load(config))
-    val serialization = SerializationExtension(system)
+
+      serialization-bindings {
+        "java.io.Serializable" = none
+        "org.apache.avro.generic.GenericContainer" = avro
+      }
+    }
+  }
+""")
+val system = ActorSystem("example", ConfigFactory.load(config))
+val serialization = SerializationExtension(system)
+```
 
 Alternatively, you can add the information shown above to one of your
 configuration files (cf. Akka's documentation on [configuration of
@@ -74,28 +76,30 @@ serializers](http://doc.akka.io/docs/akka/snapshot/scala/serialization.html)).
 Assuming **pre-compiled classes** (package **hopped.akka.serialization.avro**)
 exist for the following **Avro definition**:
 
+```avro
+{
+  "namespace" : "hopped.akka.serialization.avro",
+  "name" : "SearchRequest",
+  "type" : "record",
+  "fields" : [
     {
-      "namespace" : "hopped.akka.serialization.avro",
-      "name" : "SearchRequest",
-      "type" : "record",
-      "fields" : [
-        {
-          "name" : "Query",
-          "type" : "string"
-        },
-        {
-          "name" : "Source",
-          "type" : "string"
-        },
-        {
-          "name" : "Targets",
-          "type" : {
-            "type"  : "array",
-            "items" : "string"
-          }
-        }
-      ]
+      "name" : "Query",
+      "type" : "string"
+    },
+    {
+      "name" : "Source",
+      "type" : "string"
+    },
+    {
+      "name" : "Targets",
+      "type" : {
+      "type"  : "array",
+        "items" : "string"
+      }
     }
+  ]
+}
+```
 
 ### Serialization and Deserialization of Avro records with Code Generation
 
@@ -103,27 +107,31 @@ Once the **ActorSystem** is set up, Avro record objects can be serialized and
 deserialized as follows (using auto-compiled version of a **SearchRequest**
 definition):
 
-    import hopped.akka.serialization.avro.SearchRequest
-    import scala.collection.JavaConverters._
-    import scala.collection.mutable.ListBuffer
+```scala
+import hopped.akka.serialization.avro.SearchRequest
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 
-    // create a new SearchRequest
-    val targets: ListBuffer[CharSequence] = ListBuffer("en")
-    val avroObject = new SearchRequest("keyword", "de", targets.asJava)
+// create a new SearchRequest
+val targets: ListBuffer[CharSequence] = ListBuffer("en")
+val avroObject = new SearchRequest("keyword", "de", targets.asJava)
 
-    // get the appropriate Akka serializer (here: AvroSerializer)
-    val avroSerializer = serializerSystem.findSerializerFor(avroObject)
+// get the appropriate Akka serializer (here: AvroSerializer)
+val avroSerializer = serializerSystem.findSerializerFor(avroObject)
 
-    // serialize the SearchRequest
-    val serialized = avroSerializer.toBinary(avroObject)
+// serialize the SearchRequest
+val serialized = avroSerializer.toBinary(avroObject)
 
-    // deserialize the binary representation of the SearchRequest
-    val deserialized = avroSerializer.fromBinary(serialized, avroObject.getClass).asInstanceOf[SearchRequest]
+// deserialize the binary representation of the SearchRequest
+val deserialized = avroSerializer.fromBinary(serialized, avroObject.getClass).asInstanceOf[SearchRequest]
+```
 
 After deserialization, you can access the fields of the Avro record as usual:
 
-    // access the Query field
-    var query = deserialized.getQuery
+```scala
+// access the Query field
+var query = deserialized.getQuery
+```
 
 ### Serialization and Deserialization of Avro records without Code Generation
 
@@ -131,50 +139,56 @@ First, you'll need to extend **GenericRecordProxy** while making the schema
 statically available. This ensures that the schema is already available while
 creating a new instance of that proxy at runtime:
 
-    import hopped.akka.serialization.GenericRecordProxy
-    import java.io.File
-    import org.apache.avro.Schema
-    import org.apache.avro.Schema.Parser
+```scala
+import hopped.akka.serialization.GenericRecordProxy
+import java.io.File
+import org.apache.avro.Schema
+import org.apache.avro.Schema.Parser
 
-    object SearchRequestProxy {
-      val request = "../../resources/test/avro/request.avsc"
-      val resource = getClass.getClassLoader.getResource(request)
-      val SCHEMA = new Parser().parse(new File(resource.toURI))
-    }
+object SearchRequestProxy {
+  val request = "../../resources/test/avro/request.avsc"
+  val resource = getClass.getClassLoader.getResource(request)
+  val SCHEMA = new Parser().parse(new File(resource.toURI))
+}
 
-    class SearchRequestProxy extends GenericRecordProxy {
-      import SearchRequestProxy.SCHEMA
+class SearchRequestProxy extends GenericRecordProxy {
+  import SearchRequestProxy.SCHEMA
 
-      def getSchema(): Schema = {
-        return SearchRequestProxy.SCHEMA
-      }
-    }
+  def getSchema(): Schema = {
+    return SearchRequestProxy.SCHEMA
+  }
+}
+```
 
 Second, a generic Avro object can be instantiated and serialized/deserialized as follows:
 
-    import scala.collection.JavaConverters._
-    import scala.collection.mutable.ListBuffer
+```scala
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 
-    // create a new generic SearchRequest
-    val request = new GenericData.Record(new SearchRequestProxy().getSchema);
-    request.put("Query", "keyword")
-    request.put("Source", "de")
-    val targets: ListBuffer[CharSequence] = ListBuffer("en")
-    request.put("Targets", targets.asJava)
+// create a new generic SearchRequest
+val request = new GenericData.Record(new SearchRequestProxy().getSchema);
+request.put("Query", "keyword")
+request.put("Source", "de")
+val targets: ListBuffer[CharSequence] = ListBuffer("en")
+request.put("Targets", targets.asJava)
 
-    // get the appropriate Akka serializer (here: AvroSerializer)
-    val avroSerializer = serializerSystem.findSerializerFor(gRecordRequest)
+// get the appropriate Akka serializer (here: AvroSerializer)
+val avroSerializer = serializerSystem.findSerializerFor(gRecordRequest)
 
-    // serialize the SearchRequest
-    val serialized = avroSerializer.toBinary(gRecordRequest)
+// serialize the SearchRequest
+val serialized = avroSerializer.toBinary(gRecordRequest)
 
-    // deserialize the binary representation of the SearchRequest
-    var avroObject = avroSerializer.fromBinary(serialized, classOf[SearchRequestProxy]).asInstanceOf[GenericData.Record]
+// deserialize the binary representation of the SearchRequest
+var avroObject = avroSerializer.fromBinary(serialized, classOf[SearchRequestProxy]).asInstanceOf[GenericData.Record]
+```
 
 After deserialization, you can access the fields of the Avro record as follows:
 
-    // access the Query field via 'get'
-    query = deserialized.get("Query")
+```scala
+// access the Query field via 'get'
+query = deserialized.get("Query")
+```
 
 
 ## Author
