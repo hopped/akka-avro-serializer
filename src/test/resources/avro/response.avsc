@@ -1,0 +1,18 @@
+{
+    "namespace" : "hopped.akka.serialization.avro",
+    "name" : "SearchResponse",
+    "type" : "record",
+    "fields" : [
+        {
+            "name" : "Query",
+            "type" : "string"
+        },
+        {
+            "name" : "Translations",
+            "type" : {
+                "type"   : "map",
+                "values" : "string"
+            }
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+{
+    "namespace" : "hopped.akka.serialization.avro",
+    "name" : "SearchRequest",
+    "type" : "record",
+    "fields" : [
+        {
+            "name" : "Query",
+            "type" : "string"
+        },
+        {
+            "name" : "Source",
+            "type" : "string"
+        },
+        {
+            "name" : "Targets",
+            "type" : {
+                "type"  : "array",
+                "items" : "string"
+            }
+        }
+    ]
+}

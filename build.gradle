@@ -1,0 +1,96 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenRepo url: "http://clojars.org/repo"
+    }
+    dependencies {
+    	classpath 'com.eriwen:gradle-cobertura-plugin:1.1.0'
+        classpath 'org.apache.maven:maven-artifact:2.2.1'
+        classpath 'org.apache.avro:avro-compiler:1.7.4'
+        classpath 'org.clojars.miguno:avro-gradle-plugin:1.7.2'
+    }
+}
+
+apply plugin: 'avro-gradle-plugin'
+apply plugin: 'cobertura'
+apply plugin: 'scala'
+
+group = 'hopped.akka'
+version = '1.0'
+
+description = """Akka Serializer to serialize/deserialize Apache Avro records"""
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	compile 'org.scala-lang:scala-library:2.10.2'
+	compile 'org.scala-lang:scala-reflect:2.10.2'
+	compile 'com.typesafe.akka:akka-actor_2.10:2.2.0'
+	compile 'org.apache.avro:avro:1.7.4'
+
+	testCompile 'junit:junit:4.11'
+	testCompile 'org.scalatest:scalatest_2.10:2.0.M6-SNAP36'
+
+	compileAvro
+}
+
+compileScala {
+    scalaCompileOptions.useCompileDaemon = true
+}
+
+compileAvro {
+	source = 'src/test/resources/avro'
+	destinationDir = file("$buildDir/generated-sources/avro")
+    description = 'Assembles Java classes based on given Apache Avro definitions'
+}
+
+compileAvro.onlyIf { !project.hasProperty('skipAvro') }
+
+sourceSets {
+	main {
+		java {
+    		srcDir compileAvro.destinationDir
+    	}
+    	runtimeClasspath = files(output.resourcesDir) +
+            files(compileAvro.source) +
+            runtimeClasspath
+  	}
+  	test {
+  		runtimeClasspath = files(output.resourcesDir) + runtimeClasspath
+  	}
+}
+
+tasks.withType(ScalaCompile) {
+    scalaCompileOptions.additionalParameters = [ '-target:jvm-1.7' ]
+    scalaCompileOptions.useAnt = false
+}
+
+test {
+    // cf. http://goo.gl/er3h7P
+    jvmArgs "-XX:-UseSplitVerifier"
+}
+
+jar {
+	from {
+		configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+	}
+	manifest {
+		attributes(
+			'Implementation-Title': 'Akka Serializer to serialize/deserialize Apache Avro records',
+			'Implementation-Vendor': 'Dennis Hoppe',
+			'Implementation-Version': version,
+			'Class-Path': configurations.compile.collect { it.getName() }.join(' ')
+		)
+	}
+}
+
+cobertura {
+    format = 'html'
+    includes = [ '**/*.scala', '**/*.java' ]
+    excludes = [ 'hopped/akka/serialization/avro/Search*.*' ]
+}
