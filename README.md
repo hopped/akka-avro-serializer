@@ -102,6 +102,8 @@ deserialized as follows (using auto-compiled version of a **SearchRequest**
 definition):
 
     import hopped.akka.serialization.avro.SearchRequest
+    import scala.collection.JavaConverters._
+    import scala.collection.mutable.ListBuffer
 
     // create a new SearchRequest
     val targets: ListBuffer[CharSequence] = ListBuffer("en")

@@ -30,22 +30,9 @@ import com.typesafe.config.ConfigFactory
 import hopped.akka.serialization.avro.{ SearchRequest, SearchResponse }
 
 import java.io.File
-import java.util.ArrayList
-import java.util.HashMap
-import java.util.List
 
-import org.apache.avro.generic.{
-    GenericData,
-    GenericRecord,
-    GenericDatumReader,
-    GenericDatumWriter,
-    IndexedRecord
-}
-import org.apache.avro.specific.{
-    SpecificDatumReader,
-    SpecificDatumWriter,
-    SpecificRecordBase
-}
+import org.apache.avro.generic.GenericData
+
 import org.apache.avro.io.{ DecoderFactory, EncoderFactory }
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Parser
@@ -53,14 +40,15 @@ import org.apache.avro.Schema.Parser
 import org.junit.runner.RunWith
 
 import org.scalatest._
-import org.scalatest.{ FlatSpec, WordSpec, BeforeAndAfterAll, Tag }
-import org.scalatest.matchers._
 import org.scalatest.junit.JUnitRunner
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
-
+/**
+  * Describes standard behaviour of an Avro record concerning serialization and
+  * deserialization.
+  */
 trait AvroRecordBehaviour { this: FlatSpec with Matchers =>
 
     def AvroRecord(avroSystem: => Serialization, avroRecord: => AnyRef) {
@@ -103,6 +91,10 @@ trait AvroRecordBehaviour { this: FlatSpec with Matchers =>
 
 }
 
+
+/**
+  * Test suite for the [[hopped.akka.serialization.AvroSerializer]]
+  */
 @RunWith(classOf[JUnitRunner])
 class AvroSerializerSpec extends FlatSpec with Matchers with AvroRecordBehaviour {
 

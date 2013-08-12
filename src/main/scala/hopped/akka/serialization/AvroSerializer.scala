@@ -28,8 +28,8 @@ import java.io.ByteArrayOutputStream
 
 import org.apache.avro.generic.{ GenericDatumReader, IndexedRecord }
 import org.apache.avro.io.{
-    BinaryEncoder,
     BinaryDecoder,
+    BinaryEncoder,
     DecoderFactory,
     EncoderFactory
 }
